@@ -25,7 +25,7 @@ Build an isolated virtual lab environment to safely practice cybersecurity attac
 
 ### Why not NAT?
 
-By default, VirtualBox assigns **NAT** to every VM. NAT gives the VM internet access through the host machine — useful for downloading tools, but dangerous when practicing attacks or running malware, as there is a risk of affecting the host network.
+By default, VirtualBox assigns **NAT** to every VM. NAT gives the VM internet access through the host machine, useful for downloading tools, but dangerous when practicing attacks or running malware, as there is a risk of affecting the host network.
 
 ### Why Internal Network?
 
@@ -79,6 +79,7 @@ Configured via **Settings → Network → IPv4 → Manual**:
 Verified communication between VMs using ping from Kali to Ubuntu: 
 ping 192.168.20.10 
 Result: 
+
 64 bytes from 192.168.20.10: icmp_seq=1 ttl=64 time=2.21 ms
 64 bytes from 192.168.20.10: icmp_seq=2 ttl=64 time=1.96 ms
 64 bytes from 192.168.20.10: icmp_seq=3 ttl=64 time=1.61 ms 
@@ -89,6 +90,6 @@ Result:
 
 ## Key Takeaways
 
-- VirtualBox network modes serve different purposes — choosing the right one is a security decision, not just a technical one
+- VirtualBox network modes serve different purposes, choosing the right one is a security decision, not just a technical one
 - Static IPs are essential when machines need to reliably find each other on a network
 - Isolating lab environments from production networks is a fundamental security practice used in enterprise SOC environments
