@@ -1,7 +1,7 @@
 # Cybersecurity Portfolio  Anttoni Mascarenhas
 
 🔐 Aspiring SOC Analyst transitioning into cybersecurity from a hands-on background in construction .  
-📍 Based in Melbourne, Australia — open to local and remote opportunities.  
+📍 Based in Melbourne, Australia , open to local and remote opportunities.  
 🎯 Building practical skills through home labs, TryHackMe, and real-world simulations.
 
 ---
@@ -17,7 +17,7 @@ This repository documents my cybersecurity learning journey  every project, ever
 | [windows-fundamentals.md](./windows-fundamentals.md) | TryHackMe / Windows Fundamentals | ✅ Complete |
 | wazuh-siem-lab.md | SIEM Home Lab using Wazuh — log ingestion, detection rules, dashboards | 🔄 In Progress |
 | firewall-lab.md | pfSense + DVWA — network firewall and web application firewall | 📋 Coming Soon |
-| wireshark-analysis.md | Network traffic analysis — capturing and filtering packets | 📋 Coming Soon |
+| wireshark-analysis.md | Network traffic analysis  capturing and filtering packets | 📋 Coming Soon |
 | azure-security-lab.md | Microsoft Sentinel + Azure security configuration | 📋 Coming Soon |
 
 ---
