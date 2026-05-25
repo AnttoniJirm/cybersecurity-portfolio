@@ -54,7 +54,7 @@ This repository documents my cybersecurity learning journey — every project, e
 
 ## Connect
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Anttoni%20Mascarenhas-blue?style=flat&logo=linkedin)](https://linkedin.com/in/antoni-mascarenhas-8b628120b)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Anttoni%20Mascarenhas-blue?style=flat&logo=linkedin)]([https://linkedin.com/in/antoni-mascarenhas-8b628120b](https://www.linkedin.com/in/antoni-mascarenhas-8b6281120/pt/?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BAP%2FSXpHCRae1vJmzaZl9kQ%3D%3D))
 [![TryHackMe](https://img.shields.io/badge/TryHackMe-Profile-red?style=flat&logo=tryhackme)](https://tryhackme.com)
 
 ---
