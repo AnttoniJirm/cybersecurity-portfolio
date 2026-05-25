@@ -1,6 +1,6 @@
 # Cybersecurity Portfolio  Anttoni Mascarenhas
 
-🔐 Aspiring SOC Analyst transitioning into cybersecurity from a hands-on background in construction.  
+🔐 Aspiring SOC Analyst transitioning into cybersecurity from a hands-on background in construction .  
 📍 Based in Melbourne, Australia — open to local and remote opportunities.  
 🎯 Building practical skills through home labs, TryHackMe, and real-world simulations.
 
