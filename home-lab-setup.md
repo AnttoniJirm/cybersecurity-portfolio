@@ -93,3 +93,98 @@ Result:
 - VirtualBox network modes serve different purposes, choosing the right one is a security decision, not just a technical one
 - Static IPs are essential when machines need to reliably find each other on a network
 - Isolating lab environments from production networks is a fundamental security practice used in enterprise SOC environments
+
+## Wazuh SIEM Deployment
+
+### Overview
+Deployed Wazuh 4.7.5 (all-in-one: Manager, Indexer, Dashboard) on Ubuntu to simulate 
+a real SOC monitoring environment.
+
+### Installation
+```bash
+curl -O https://packages.wazuh.com/4.7/wazuh-install.sh
+sudo bash wazuh-install.sh -a
+```
+Dashboard accessible at: `https://127.0.0.1`
+
+---
+
+## Ubuntu Static IP via Netplan
+
+Previous Ubuntu IP was configured via GUI. Reconfigured via netplan for server best practice.
+
+Edited `/etc/netplan/01-network-manager-all.yaml`:
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      dhcp4: no
+      addresses:
+        - 192.168.20.10/24
+```
+
+Applied with:
+```bash
+sudo chmod 600 /etc/netplan/01-network-manager-all.yaml
+sudo systemctl enable systemd-networkd
+sudo systemctl start systemd-networkd
+sudo netplan apply
+```
+
+Verified with `ip addr show` — `inet 192.168.20.10/24` confirmed. ✅
+
+---
+
+## Wazuh Agent Deployment (Kali Linux)
+
+### Installation
+```bash
+curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor | sudo tee /usr/share/keyrings/wazuh.gpg > /dev/null
+
+echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" | sudo tee /etc/apt/sources.list.d/wazuh.list
+
+sudo apt update
+sudo apt install wazuh-agent=4.7.5-1 -y
+```
+
+### Configuration
+Edited `/var/ossec/etc/ossec.conf` — set manager address:
+```xml
+<address>192.168.20.10</address>
+```
+
+### Registration
+```bash
+sudo /var/ossec/bin/agent-auth -m 192.168.20.10
+sudo systemctl enable wazuh-agent
+sudo systemctl restart wazuh-agent
+```
+
+Result: `INFO: Valid key received` ✅
+
+---
+
+## Troubleshooting & Lessons Learned
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `netplan apply` failed | `systemd-networkd` not running | `sudo systemctl enable/start systemd-networkd` |
+| Agent version mismatch | Kali installed 4.14.5, Manager is 4.7.5 | Reinstalled agent with `wazuh-agent=4.7.5-1` |
+| `MANAGER_IP` not replaced | Agent installed without labnet access | Manually edited `ossec.conf` after install |
+| Duplicate agent name | Old agent entry not fully removed | Used `manage_agents -r 002` + manager restart |
+| Kali no internet on labnet | Internal Network has no internet by design | Temporarily switched to NAT for downloads |
+
+**Key lesson:** Plan the installation order before starting. Install the agent while still on NAT, then switch to labnet and configure the static IP.
+
+---
+
+## Final Result
+
+Wazuh dashboard showing:
+- **Total agents: 1**
+- **Active agents: 1** ✅
+
+Kali Linux (attacker) successfully monitored by Wazuh SIEM on Ubuntu (defender).
