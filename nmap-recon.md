@@ -1,7 +1,7 @@
 # Nmap Reconnaissance & Wazuh Detection
 
 **Date:** May 2026  
-**Lab Environment:** VirtualBox — Kali Linux (attacker) → Ubuntu 22.04 (defender/SIEM)
+**Lab Environment:** VirtualBox , Kali Linux (attacker) → Ubuntu 22.04 (defender/SIEM)
 
 ## Objective
 Perform network reconnaissance from Kali Linux against the Ubuntu target and observe 
@@ -43,7 +43,7 @@ instead of a known service signature.
 
 ---
 
-## Scan 2 — Aggressive OS Detection
+## Scan 2  Aggressive OS Detection
 
 **Command:**
 ```bash
@@ -52,7 +52,7 @@ nmap -sS -A -O 192.168.20.10
 
 **What it does:**
 - `-sS` SYN scan (sends SYN packets, more detectable)
-- `-A` aggressive mode — enables OS detection, version detection, script scanning
+- `-A` aggressive mode, enables OS detection, version detection, script scanning
 - `-O` OS fingerprinting
 
 **Results:**
@@ -80,9 +80,9 @@ After both scans, the Wazuh dashboard registered:
 - Disable or Modify Tools
 
 **Notable alerts from Kali agent:**
-- `SCA summary: System audit score less than 30%` — Level 9
-- Multiple SSH hardening failures — Level 7
-- Password policy violations — Level 3
+- `SCA summary: System audit score less than 30%`   Level 9
+- Multiple SSH hardening failures  Level 7
+- Password policy violations   Level 3
 
 **Alert spike visible** at 12:00-15:00 timestamp in the dashboard — 
 directly correlating with when the Nmap scans were executed.
