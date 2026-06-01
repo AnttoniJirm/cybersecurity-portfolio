@@ -19,7 +19,7 @@ how Wazuh SIEM detects and logs the activity.
 
 ---
 
-## Scan 1 — Service Version Detection
+## Scan 1 // Service Version Detection
 
 **Command:**
 ```bash
@@ -84,7 +84,7 @@ After both scans, the Wazuh dashboard registered:
 - Multiple SSH hardening failures  Level 7
 - Password policy violations   Level 3
 
-**Alert spike visible** at 12:00-15:00 timestamp in the dashboard — 
+**Alert spike visible** at 12:00-15:00 timestamp in the dashboard  
 directly correlating with when the Nmap scans were executed.
 
 ---
