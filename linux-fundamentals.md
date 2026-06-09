@@ -1,22 +1,28 @@
 # Linux Fundamentals 1, 2 & 3
+
 **Platform:** TryHackMe — Cyber Security 101 path  
 **Category:** Operating Systems — Linux  
 **Completed as:** Single study block (Parts 1, 2 & 3)
 
 ---
 
-## What I learned
+## What I Learned
 
-Linux is an open-source operating system widely used in servers, cloud infrastructure, and cybersecurity tools. Unlike Windows, its open nature allows deep customization and full transparency — which is why most security tools, web servers, and CTF environments run on Linux.
+Linux is an open-source operating system widely used in servers, cloud infrastructure, 
+and cybersecurity tools. Unlike Windows, its open nature allows deep customization and 
+full transparency — which is why most security tools, web servers, and CTF environments 
+run on Linux.
 
-The key insight is that in Linux, **everything is a file** — configurations, logs, devices, and processes. Understanding how to navigate and manipulate those files is the foundation of both attacking and defending systems.
+The key insight is that in Linux, **everything is a file** — configurations, logs, 
+devices, and processes. Understanding how to navigate and manipulate those files is 
+the foundation of both attacking and defending systems.
 
 ---
 
-## Commands used & why they matter
+## Commands Used & Why They Matter
 
 | Command | Purpose |
-|---|---|
+|---------|---------|
 | pwd | Print working directory — always know where you are |
 | whoami | Shows current user — know your privilege level |
 | ls | List files and folders — first recon step on any machine |
@@ -35,22 +41,25 @@ The key insight is that in Linux, **everything is a file** — configurations, l
 | ssh user@ip | Connect remotely to another machine |
 | rm | Delete files or directories — irreversible, no recycle bin ⚠️ |
 | sudo | Run a command as root — grants elevated privileges ⚠️ |
+| sed | Edit files non-interactively — substitute, delete, or insert lines |
+| systemctl | Start, stop, restart, and check status of services |
+| journalctl | Read systemd logs — used when auth.log does not exist |
 
 ---
 
-## File permissions & numeric format
+## File Permissions & Numeric Format
 
 Every file in Linux has permissions controlling who can read, write, or execute it.
 
 | Symbol | Meaning | Value |
-|---|---|---|
+|--------|---------|-------|
 | r | Read | 4 |
 | w | Write | 2 |
 | x | Execute | 1 |
 | - | No permission | 0 |
 
 | Symbolic | Numeric | Meaning |
-|---|---|---|
+|----------|---------|---------|
 | rwxrwxrwx | 777 | Everyone can do everything — dangerous |
 | rwxr-xr-x | 755 | Owner full access; others read and execute |
 | rw-r--r-- | 644 | Owner read/write; others read only |
@@ -61,38 +70,96 @@ Every file in Linux has permissions controlling who can read, write, or execute 
 
 ---
 
-## Important system directories
+## Important System Directories
 
-| Path | Purpose | Security relevance |
-|---|---|---|
+| Path | Purpose | Security Relevance |
+|------|---------|-------------------|
 | /etc/passwd | All user accounts | Readable by everyone — recon target |
 | /etc/shadow | Hashed passwords | Root-only — cracking = account access |
 | /root | Root user home directory | Full compromise if accessible |
 | /home | Regular user directories | May contain SSH keys and scripts |
 | /var/log/auth.log | Authentication log | Key for incident response |
+| /var/ossec/etc/ossec.conf | Wazuh agent config | Defines which logs the agent collects |
+| /etc/systemd/journald.conf | Journald config | Controls log forwarding behaviour |
 
 ---
 
-## Real-world application
+## Evidence Collected — Lab Application
 
-**Evidence:** A misconfigured Linux server may expose sensitive files with weak permissions, allow SSH with weak credentials, or have users with unnecessary sudo access.
+These commands were applied directly in the home lab during real investigations, 
+not just studied theoretically.
 
-**Risk level:** High
+**1. Investigating missing auth.log on Kali:**
+```bash
+sudo grep "useradd" /var/log/auth.log
+# Result: /var/log/auth.log: No such file or directory
+```
+**Finding:** Kali Linux uses `journald` instead of traditional syslog files. 
+The Wazuh agent was configured to read a file that did not exist — which is why 
+no alerts were generated. Log source must always be verified before trusting SIEM data.
 
-**Impact:** An attacker with shell access can read /etc/passwd, attempt to crack /etc/shadow hashes, escalate privileges via sudo misconfigurations, serve malicious files using python3 -m http.server, and move laterally across the network.
+---
+
+**2. Locating the event in journald:**
+```bash
+sudo journalctl | grep useradd
+# Result: Jun 8 13:15:39 kali useradd[11339]: new user: name=hacker, UID=1001
+```
+**Finding:** The event occurred and was recorded — but Wazuh never saw it because 
+it was reading the wrong log source. This is the difference between "nothing happened" 
+and "something happened but wasn't collected."
+
+---
+
+**3. Editing the Wazuh agent config with sed:**
+```bash
+sudo sed -i '208d' /var/ossec/etc/ossec.conf
+sudo sed -i 's/#ForwardToSyslog=no/ForwardToSyslog=yes/' /etc/systemd/journald.conf
+```
+**Finding:** `sed` edits files non-interactively without opening an editor. 
+The `-i` flag modifies the file in-place. The `s/old/new/` syntax substitutes text. 
+Critical for automation and scripting in real environments.
+
+---
+
+**4. Verifying and restarting services:**
+```bash
+sudo systemctl status wazuh-agent
+sudo systemctl restart wazuh-agent
+sudo systemctl status ssh
+```
+**Finding:** `systemctl` is the standard way to manage services in modern Linux. 
+Knowing how to check status, restart, and troubleshoot failed services is essential 
+for both attack and defence scenarios.
+
+---
+
+## Risk Assessment
+
+**Scenario:** A misconfigured Linux server with weak permissions and poor log collection.
+
+**Risk:** High
+
+**Impact:** An attacker with shell access can read `/etc/passwd`, attempt to crack 
+`/etc/shadow` hashes, escalate privileges via sudo misconfigurations, and move 
+laterally across the network — all while going undetected if log collection is broken.
 
 **Mitigation:**
 - Audit permissions with `find / -perm -777` and fix with `chmod`
 - Restrict sudo — only grant it to users who genuinely need it
-- Disable root SSH login; enforce key-based authentication
-- Monitor /var/log/auth.log for suspicious activity
-- Keep the system updated to patch known vulnerabilities
+- Disable root SSH login — enforce key-based authentication
+- Verify log sources are correctly configured in the SIEM agent
+- Monitor `/var/log/auth.log` for suspicious authentication activity
 
 ---
 
-## Portfolio connections
-- Google Cybersecurity Certificate
-- VirtualBox Lab (Kali Linux attacking Ubuntu)
-- AZ-900
+## Portfolio Connections
 
-SSH, file navigation, and python3 -m http.server are directly applied in the VirtualBox lab — connecting from Kali to Ubuntu uses exactly the commands covered in these rooms.
+- Google Cybersecurity Certificate
+- Home Lab: VirtualBox — Kali Linux + Ubuntu + Wazuh 4.7.5
+- Wazuh Detection Lab — User Account Creation (MITRE T1136)
+- SSH Brute Force Detection (MITRE T1110)
+
+Commands covered in this document were applied directly in the lab — 
+`grep`, `sed`, `nano`, `systemctl`, and `journalctl` were all used during 
+real troubleshooting sessions, not just practiced in isolation.
