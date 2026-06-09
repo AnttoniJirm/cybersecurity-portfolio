@@ -38,6 +38,8 @@ Duration: ~59 minutes. Wordlist: rockyou.txt (14 million passwords).
 
 **Total alerts: 3765 | Authentication failures: 3672 | Authentication success: 9**
 
+<img width="1267" height="803" alt="3765 hits" src="https://github.com/user-attachments/assets/a776d361-f03a-47e0-8b27-673d0ff9737b" />
+
 
 ---
 
@@ -53,6 +55,9 @@ Duration: ~59 minutes. Wordlist: rockyou.txt (14 million passwords).
 | decoder.name | sshd |
 | location | /var/log/auth.log |
 | full_log | PAM 2 more authentication failures; rhost=192.168.20.11 user=vboxuser |
+
+<img width="1288" height="875" alt="Screenshot 2026-06-09 140638" src="https://github.com/user-attachments/assets/d1107997-e509-4a05-92c2-77501d0fe6ea" />
+
 
 ---
 
@@ -82,7 +87,10 @@ No successful compromise was confirmed.
 | Technique | Brute Force |
 | Tactic | Credential Access |
 
----
+<img width="1282" height="862" alt="Screenshot 2026-06-09 141034" src="https://github.com/user-attachments/assets/5b99eda1-1b11-494f-aaa5-34c025b5c9d0" />
+
+
+--------
 
 ## Recommendations
 1. Disable password authentication — enforce SSH key-based login only
