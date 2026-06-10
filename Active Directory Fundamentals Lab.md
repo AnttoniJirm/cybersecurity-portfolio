@@ -1,6 +1,6 @@
 # Active Directory Fundamentals Lab
 
-**Platform:** Home Lab — Windows Server 2022  
+**Platform:** Home Lab  Windows Server 2022  
 **Date:** June 2026
 
 ---
@@ -110,6 +110,8 @@ SamAccountName    : jsmith
 UserPrincipalName : jsmith@lab.local
 SID               : S-1-5-21-2075389030-3758795886-1683061984-1103 
 
+<img width="1026" height="770" alt="IT Team members" src="https://github.com/user-attachments/assets/6e297acb-8a29-4ef1-b886-591926d9fe09" />
+
 ---
 
 ## Phase 5 — Creating Security Group
@@ -163,6 +165,8 @@ Get-ADUser -Filter * -SearchBase "OU=IT,DC=lab,DC=local"
 DistinguishedName : CN=John Smith,OU=IT,DC=lab,DC=local — Enabled: True
 DistinguishedName : CN=Jane Doe,OU=IT,DC=lab,DC=local  — Enabled: True 
 
+<img width="1033" height="781" alt="OU IT  O AD 003" src="https://github.com/user-attachments/assets/23a36a54-d7a0-404d-915c-d65028fdc22b" />
+
 ---
 
 ## Phase 7 — Creating and Applying Group Policy
@@ -189,6 +193,9 @@ Owner            : LAB\Domain Admins
 GpoStatus        : AllSettingsEnabled
 ComputerVersion  : AD Version: 1, SysVol Version: 1
 Target           : OU=IT,DC=lab,DC=local 
+
+<img width="1007" height="783" alt="GPO criada e aplicada na OU=IT 004" src="https://github.com/user-attachments/assets/5892d306-a688-4393-9aef-1828c525e966" />
+
 
 ---
 
@@ -225,6 +232,9 @@ Understanding AD structure is essential for SOC analysts because:
    creating the OU throws an error — order of operations matters.
 4. **GPOs are empty by default.** Creating a GPO and linking it does nothing 
    until policies are explicitly configured inside it.
+
+<img width="958" height="762" alt="final conf GPO" src="https://github.com/user-attachments/assets/b21f62e2-59f2-4d70-b13f-4802cb9aad72" />
+
 
 ---
 
