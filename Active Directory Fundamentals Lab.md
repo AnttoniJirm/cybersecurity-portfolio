@@ -23,7 +23,7 @@ organizational units, and group policy.
 
 ---
 
-## Phase 1 — Installing Windows Server 2022
+## Phase 1  Installing Windows Server 2022
 
 Downloaded Windows Server 2022 ISO directly from Microsoft Evaluation Center 
 (180-day free trial). Created VM in VirtualBox with 4GB RAM, 2 CPUs, 50GB disk.
@@ -36,7 +36,7 @@ After installation, renamed the server via SConfig:
 
 ---
 
-## Phase 2 — Installing Active Directory Domain Services
+## Phase 2  Installing Active Directory Domain Services
 
 ```powershell
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
@@ -54,7 +54,7 @@ Feature Result : Active Directory Domain Services, Group Policy Management
 
 ---
 
-## Phase 3 — Promoting the Server to Domain Controller
+## Phase 3  Promoting the Server to Domain Controller
 
 ```powershell
 Install-ADDSForest -DomainName "lab.local" -DomainNetbiosName "LAB" -InstallDns
@@ -78,17 +78,17 @@ PDCEmulator : DC01.lab.local
 
 ---
 
-## Phase 4 — Creating Users
+## Phase 4  Creating Users
 
 ```powershell
 New-ADUser -Name "John Smith" -GivenName "John" -Surname "Smith" `
   -SamAccountName "jsmith" -UserPrincipalName "jsmith@lab.local" `
-  -AccountPassword (ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force)
+  -AccountPassword (ConvertTo-SecureString "<StrongPassword>" -AsPlainText -Force)
 Enable-ADAccount -Identity "jsmith"
 
 New-ADUser -Name "Jane Doe" -GivenName "Jane" -Surname "Doe" `
   -SamAccountName "jdoe" -UserPrincipalName "jdoe@lab.local" `
-  -AccountPassword (ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force)
+  -AccountPassword (ConvertTo-SecureString "<StrongPassword>" -AsPlainText -Force)
 Enable-ADAccount -Identity "jdoe"
 ```
 
