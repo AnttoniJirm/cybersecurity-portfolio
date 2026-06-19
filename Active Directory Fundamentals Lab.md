@@ -1,15 +1,15 @@
 # Active Directory Fundamentals   Building a Domain from Scratch
 
-**Note:** This is reference documentation for the AD environment used in subsequent detection labs (Account Lockout Detection, etc.), not a standalone investigation. It exists so the setup is reproducible and verifiable — the actual SOC-relevant work starts in the labs that build on top of this.
+**Note:** This is reference documentation for the AD environment used in subsequent detection labs (Account Lockout Detection, etc.), not a standalone investigation. It exists so the setup is reproducible and verifiable  the actual SOC-relevant work starts in the labs that build on top of this.
 
 ## Objective
 
-Deploy a functional Active Directory environment from zero using Windows Server 2022 and PowerShell. This lab covers domain controller promotion, organizational unit structure, user and group management, and Group Policy configuration — foundational skills for any SOC or sysadmin role operating in enterprise Windows environments.
+Deploy a functional Active Directory environment from zero using Windows Server 2022 and PowerShell. This lab covers domain controller promotion, organizational unit structure, user and group management, and Group Policy configuration  foundational skills for any SOC or sysadmin role operating in enterprise Windows environments.
 
 **Environment:**
-- Host: Windows 11 — Dell Vostro 5490, i7-10510U, 16GB RAM
+- Host: Windows 11  Dell Vostro 5490, i7-10510U, 16GB RAM
 - Hypervisor: VirtualBox
-- DC01: Windows Server 2022 Standard Evaluation — 4GB RAM, 2 CPUs, 50GB disk
+- DC01: Windows Server 2022 Standard Evaluation  4GB RAM, 2 CPUs, 50GB disk
 - Domain: `lab.local`
 - Existing lab network: Kali Linux 2026.1 (192.168.20.11) + Ubuntu 22.04 (192.168.20.10) + Wazuh 4.7.5
 
@@ -17,7 +17,7 @@ Deploy a functional Active Directory environment from zero using Windows Server 
 
 ## Why This Matters
 
-Active Directory is the backbone of identity management in virtually every enterprise Windows environment. Understanding how AD works — how users are created, how policies are applied, how objects are organized — is essential for a SOC analyst. Most security incidents in corporate environments involve AD in some way: credential attacks, lateral movement, privilege escalation, and persistence mechanisms all interact with AD objects and policies. You cannot detect what you do not understand.
+Active Directory is the backbone of identity management in virtually every enterprise Windows environment. Understanding how AD works  how users are created, how policies are applied, how objects are organized  is essential for a SOC analyst. Most security incidents in corporate environments involve AD in some way: credential attacks, lateral movement, privilege escalation, and persistence mechanisms all interact with AD objects and policies. You cannot detect what you do not understand.
 
 ---
 
@@ -45,7 +45,7 @@ After installation, renamed the server to **DC01** using SConfig (option 2) and 
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
 ```
 
-**Why:** Windows Server out of the box is just an OS — it has no domain functionality. This command installs the Active Directory Domain Services role, which gives the server the capability to become a Domain Controller. The `-IncludeManagementTools` flag installs the AD PowerShell module and RSAT tools needed to manage the domain via command line.
+**Why:** Windows Server out of the box is just an OS  it has no domain functionality. This command installs the Active Directory Domain Services role, which gives the server the capability to become a Domain Controller. The `-IncludeManagementTools` flag installs the AD PowerShell module and RSAT tools needed to manage the domain via command line.
 
 ### Step 2: Promote the Server to Domain Controller
 
@@ -53,15 +53,15 @@ Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
 Install-ADDSForest -DomainName "lab.local" -DomainNetbiosName "LAB" -InstallDns
 ```
 
-**Why:** This is the command that actually creates the domain and promotes DC01 to a Domain Controller. `Install-ADDSForest` creates a new Active Directory forest — the top-level container for everything. `-DomainName "lab.local"` sets the fully qualified domain name. `-DomainNetbiosName "LAB"` sets the legacy short name used internally. `-InstallDns` deploys DNS alongside AD — this is mandatory because Active Directory relies entirely on DNS to locate domain controllers, authenticate users, and replicate data between DCs. After this command runs, the server reboots automatically.
+**Why:** This is the command that actually creates the domain and promotes DC01 to a Domain Controller. `Install-ADDSForest` creates a new Active Directory forest , the top-level container for everything. `-DomainName "lab.local"` sets the fully qualified domain name. `-DomainNetbiosName "LAB"` sets the legacy short name used internally. `-InstallDns` deploys DNS alongside AD , this is mandatory because Active Directory relies entirely on DNS to locate domain controllers, authenticate users, and replicate data between DCs. After this command runs, the server reboots automatically.
 
 ---
 
-## Phase 2 — Creating Users
+## Phase 2   Creating Users
 
 ### Step 3: Create User jsmith (John Smith)
 
-First attempt hit a syntax error — `-Enabled $true` was being parsed incorrectly due to line wrapping in the terminal. Corrected and rerun:
+First attempt hit a syntax error  `-Enabled $true` was being parsed incorrectly due to line wrapping in the terminal. Corrected and rerun:
 
 ```powershell
 New-ADUser -Name "John Smith" -GivenName "John" -Surname "Smith" `
@@ -71,7 +71,7 @@ New-ADUser -Name "John Smith" -GivenName "John" -Surname "Smith" `
   -Enabled $true
 ```
 
-**Why:** `New-ADUser` creates the user object in AD. `-SamAccountName` is the legacy login name used for authentication (this is what users type at the login screen). `-UserPrincipalName` is the modern UPN format — `user@domain`. `-AccountPassword` uses `ConvertTo-SecureString` to avoid passing a plain text password directly to the cmdlet. `-Enabled $true` activates the account immediately — by default, new accounts are created disabled.
+**Why:** `New-ADUser` creates the user object in AD. `-SamAccountName` is the legacy login name used for authentication (this is what users type at the login screen). `-UserPrincipalName` is the modern UPN format , `user@domain`. `-AccountPassword` uses `ConvertTo-SecureString` to avoid passing a plain text password directly to the cmdlet. `-Enabled $true` activates the account immediately  by default, new accounts are created disabled.
 
 **Verification:**
 
@@ -110,7 +110,7 @@ Enable-ADAccount -Identity "jdoe"
 
 ---
 
-## Phase 3 — Security Group
+## Phase 3  Security Group
 
 ### Step 5: Create IT-Team Security Group
 
@@ -118,7 +118,7 @@ Enable-ADAccount -Identity "jdoe"
 New-ADGroup -Name "IT-Team" -GroupScope Global -GroupCategory Security
 ```
 
-**Why:** Groups in AD are used to manage access at scale — instead of assigning permissions to individual users, you assign them to a group and add users to it. `-GroupScope Global` means the group can be referenced across any domain in the forest. `-GroupCategory Security` means it's used for access control and permissions, as opposed to a Distribution group which is only for email.
+**Why:** Groups in AD are used to manage access at scale  instead of assigning permissions to individual users, you assign them to a group and add users to it. `-GroupScope Global` means the group can be referenced across any domain in the forest. `-GroupCategory Security` means it's used for access control and permissions, as opposed to a Distribution group which is only for email.
 
 ### Step 6: Add Members to IT-Team
 
@@ -151,7 +151,7 @@ SID               : S-1-5-21-2075389030-3758795886-1683061984-1104
 
 ---
 
-## Phase 4 — Organizational Unit
+## Phase 4   Organizational Unit
 
 ### Step 7: Create OU=IT
 
@@ -159,9 +159,9 @@ SID               : S-1-5-21-2075389030-3758795886-1683061984-1104
 New-ADOrganizationalUnit -Name "IT" -Path "DC=lab,DC=local"
 ```
 
-**Why:** An Organizational Unit is a container within AD used to logically organize objects — users, computers, groups — by department, location, or function. OUs are important for two reasons: structure (easier to find and manage objects) and policy (Group Policy Objects can be applied to an OU, affecting everything inside it). Without OUs, you apply policies at the domain level, which affects everyone.
+**Why:** An Organizational Unit is a container within AD used to logically organize objects  users, computers, groups  by department, location, or function. OUs are important for two reasons: structure (easier to find and manage objects) and policy (Group Policy Objects can be applied to an OU, affecting everything inside it). Without OUs, you apply policies at the domain level, which affects everyone.
 
-**First attempt to move users failed** — tried `Move-ADObject` before the OU was created, which produced: `The operation could not be performed because the object's parent is either uninstantiated or deleted`. Created the OU first, then moved:
+**First attempt to move users failed**  tried `Move-ADObject` before the OU was created, which produced: `The operation could not be performed because the object's parent is either uninstantiated or deleted`. Created the OU first, then moved:
 
 ### Step 8: Move Users into OU=IT
 
@@ -190,7 +190,7 @@ SamAccountName    : jdoe
 UserPrincipalName : jdoe@lab.local
 ```
 
-Both users now show `OU=IT` in their Distinguished Name — confirming they were moved successfully.
+Both users now show `OU=IT` in their Distinguished Name  confirming they were moved successfully.
 
 <img width="1033" height="781" alt="OU IT  O AD 003" src="https://github.com/user-attachments/assets/d407de38-774b-474d-8a17-47eca6048536" />
 
