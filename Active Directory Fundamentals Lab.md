@@ -1,4 +1,4 @@
-# Active Directory Fundamentals — Building a Domain from Scratch
+# Active Directory Fundamentals   Building a Domain from Scratch
 
 **Note:** This is reference documentation for the AD environment used in subsequent detection labs (Account Lockout Detection, etc.), not a standalone investigation. It exists so the setup is reproducible and verifiable — the actual SOC-relevant work starts in the labs that build on top of this.
 
@@ -21,7 +21,7 @@ Active Directory is the backbone of identity management in virtually every enter
 
 ---
 
-## Lab Setup — Windows Server 2022
+## Lab Setup   Windows Server 2022
 
 Downloaded the Windows Server 2022 Standard Evaluation ISO directly from Microsoft (180-day free evaluation). Created the VM in VirtualBox with the following specs:
 
@@ -37,7 +37,7 @@ After installation, renamed the server to **DC01** using SConfig (option 2) and 
 
 ---
 
-## Phase 1 — Installing Active Directory Domain Services
+## Phase 1   Installing Active Directory Domain Services
 
 ### Step 1: Install the AD-DS Role
 
