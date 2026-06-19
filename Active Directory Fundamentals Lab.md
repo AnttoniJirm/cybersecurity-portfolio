@@ -1,246 +1,306 @@
-# Active Directory Fundamentals Lab
+# Active Directory Fundamentals — Building a Domain from Scratch
 
-**Platform:** Home Lab  Windows Server 2022  
-**Date:** June 2026
-
----
+**Note:** This is reference documentation for the AD environment used in subsequent detection labs (Account Lockout Detection, etc.), not a standalone investigation. It exists so the setup is reproducible and verifiable — the actual SOC-relevant work starts in the labs that build on top of this.
 
 ## Objective
-Build a functional Active Directory environment from scratch, simulating a real 
-corporate Windows infrastructure with Domain Controller, users, groups, 
-organizational units, and group policy.
+
+Deploy a functional Active Directory environment from zero using Windows Server 2022 and PowerShell. This lab covers domain controller promotion, organizational unit structure, user and group management, and Group Policy configuration — foundational skills for any SOC or sysadmin role operating in enterprise Windows environments.
+
+**Environment:**
+- Host: Windows 11 — Dell Vostro 5490, i7-10510U, 16GB RAM
+- Hypervisor: VirtualBox
+- DC01: Windows Server 2022 Standard Evaluation — 4GB RAM, 2 CPUs, 50GB disk
+- Domain: `lab.local`
+- Existing lab network: Kali Linux 2026.1 (192.168.20.11) + Ubuntu 22.04 (192.168.20.10) + Wazuh 4.7.5
 
 ---
 
-## Environment
-| Component | Details |
-|-----------|---------|
-| Domain Controller | Windows Server 2022 — DC01 |
-| Domain | lab.local |
-| SIEM | Wazuh 4.7.5 (Ubuntu 22.04 — 192.168.20.10) |
-| Attacker | Kali Linux 2026.1 (192.168.20.11) |
-| Network | Isolated internal network — labnet |
+## Why This Matters
+
+Active Directory is the backbone of identity management in virtually every enterprise Windows environment. Understanding how AD works — how users are created, how policies are applied, how objects are organized — is essential for a SOC analyst. Most security incidents in corporate environments involve AD in some way: credential attacks, lateral movement, privilege escalation, and persistence mechanisms all interact with AD objects and policies. You cannot detect what you do not understand.
 
 ---
 
-## Phase 1  Installing Windows Server 2022
+## Lab Setup — Windows Server 2022
 
-Downloaded Windows Server 2022 ISO directly from Microsoft Evaluation Center 
-(180-day free trial). Created VM in VirtualBox with 4GB RAM, 2 CPUs, 50GB disk.
+Downloaded the Windows Server 2022 Standard Evaluation ISO directly from Microsoft (180-day free evaluation). Created the VM in VirtualBox with the following specs:
 
-After installation, renamed the server via SConfig:
+| Setting | Value |
+|---|---|
+| RAM | 4GB |
+| CPUs | 2 |
+| Disk | 50GB |
+| Network | NAT (installation) |
+| OS | Windows Server 2022 Standard Evaluation |
 
-```powershell
-# Option 2 in SConfig — renamed from WIN-XXXXXXX to DC01
-```
+After installation, renamed the server to **DC01** using SConfig (option 2) and rebooted.
 
 ---
 
-## Phase 2  Installing Active Directory Domain Services
+## Phase 1 — Installing Active Directory Domain Services
+
+### Step 1: Install the AD-DS Role
 
 ```powershell
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
 ```
 
-**What this does:** Installs the AD Domain Services role on Windows Server. 
-Without this, the server is just a regular Windows machine. With it, the server 
-can be promoted to a Domain Controller.
+**Why:** Windows Server out of the box is just an OS — it has no domain functionality. This command installs the Active Directory Domain Services role, which gives the server the capability to become a Domain Controller. The `-IncludeManagementTools` flag installs the AD PowerShell module and RSAT tools needed to manage the domain via command line.
 
-**Result:**
-
-Success : True
-Exit Code : Success
-Feature Result : Active Directory Domain Services, Group Policy Management 
-
----
-
-## Phase 3  Promoting the Server to Domain Controller
+### Step 2: Promote the Server to Domain Controller
 
 ```powershell
 Install-ADDSForest -DomainName "lab.local" -DomainNetbiosName "LAB" -InstallDns
 ```
 
-**What this does:** Promotes the server to Domain Controller and creates the 
-`lab.local` domain. `-InstallDns` installs the DNS service alongside AD — 
-Active Directory requires DNS to function. The server rebooted automatically 
-after this command.
-
-**Verification:**
-```powershell
-Get-ADDomain
-```
-
-**Result:** 
-
-DNSRoot     : lab.local
-NetBIOSName : LAB
-PDCEmulator : DC01.lab.local 
+**Why:** This is the command that actually creates the domain and promotes DC01 to a Domain Controller. `Install-ADDSForest` creates a new Active Directory forest — the top-level container for everything. `-DomainName "lab.local"` sets the fully qualified domain name. `-DomainNetbiosName "LAB"` sets the legacy short name used internally. `-InstallDns` deploys DNS alongside AD — this is mandatory because Active Directory relies entirely on DNS to locate domain controllers, authenticate users, and replicate data between DCs. After this command runs, the server reboots automatically.
 
 ---
 
-## Phase 4  Creating Users
+## Phase 2 — Creating Users
+
+### Step 3: Create User jsmith (John Smith)
+
+First attempt hit a syntax error — `-Enabled $true` was being parsed incorrectly due to line wrapping in the terminal. Corrected and rerun:
 
 ```powershell
 New-ADUser -Name "John Smith" -GivenName "John" -Surname "Smith" `
-  -SamAccountName "jsmith" -UserPrincipalName "jsmith@lab.local" `
-  -AccountPassword (ConvertTo-SecureString "<StrongPassword>" -AsPlainText -Force)
-Enable-ADAccount -Identity "jsmith"
-
-New-ADUser -Name "Jane Doe" -GivenName "Jane" -Surname "Doe" `
-  -SamAccountName "jdoe" -UserPrincipalName "jdoe@lab.local" `
-  -AccountPassword (ConvertTo-SecureString "<StrongPassword>" -AsPlainText -Force)
-Enable-ADAccount -Identity "jdoe"
+  -SamAccountName "jsmith" `
+  -UserPrincipalName "jsmith@lab.local" `
+  -AccountPassword (ConvertTo-SecureString "<LabPassword>" -AsPlainText -Force) `
+  -Enabled $true
 ```
 
-**What this does:** `New-ADUser` creates the user with name, username and domain 
-email. `-AccountPassword` sets the password securely by converting plain text to 
-a SecureString. `Enable-ADAccount` enables the account — by default users are 
-created disabled.
+**Why:** `New-ADUser` creates the user object in AD. `-SamAccountName` is the legacy login name used for authentication (this is what users type at the login screen). `-UserPrincipalName` is the modern UPN format — `user@domain`. `-AccountPassword` uses `ConvertTo-SecureString` to avoid passing a plain text password directly to the cmdlet. `-Enabled $true` activates the account immediately — by default, new accounts are created disabled.
 
 **Verification:**
+
 ```powershell
 Get-ADUser -Identity "jsmith"
 ```
 
-**Result:** 
-
+```
 DistinguishedName : CN=John Smith,CN=Users,DC=lab,DC=local
 Enabled           : True
+GivenName         : John
+Name              : John Smith
+ObjectClass       : user
+ObjectGUID        : 6a7d1b5c-2e65-48d3-8c41-9f8c62ee7db7
 SamAccountName    : jsmith
+SID               : S-1-5-21-2075389030-3758795886-1683061984-1103
+Surname           : Smith
 UserPrincipalName : jsmith@lab.local
-SID               : S-1-5-21-2075389030-3758795886-1683061984-1103 
+```
 
-<img width="1026" height="770" alt="IT Team members" src="https://github.com/user-attachments/assets/6e297acb-8a29-4ef1-b886-591926d9fe09" />
+<img width="1042" height="802" alt="Primeiro usuário AD criado 002" src="https://github.com/user-attachments/assets/55e56bb3-ec2f-4063-9661-3584e080a103" />
+
+
+### Step 4: Create User jdoe (Jane Doe)
+
+```powershell
+New-ADUser -Name "Jane Doe" -GivenName "Jane" -Surname "Doe" `
+  -SamAccountName "jdoe" `
+  -UserPrincipalName "jdoe@lab.local" `
+  -AccountPassword (ConvertTo-SecureString "<LabPassword>" -AsPlainText -Force) `
+  -Enabled $true
+Enable-ADAccount -Identity "jdoe"
+```
+
+**Note on Enable-ADAccount:** Used as an extra safeguard after the earlier error on jsmith to ensure the account was active.
 
 ---
 
-## Phase 5 — Creating Security Group
+## Phase 3 — Security Group
+
+### Step 5: Create IT-Team Security Group
 
 ```powershell
 New-ADGroup -Name "IT-Team" -GroupScope Global -GroupCategory Security
+```
+
+**Why:** Groups in AD are used to manage access at scale — instead of assigning permissions to individual users, you assign them to a group and add users to it. `-GroupScope Global` means the group can be referenced across any domain in the forest. `-GroupCategory Security` means it's used for access control and permissions, as opposed to a Distribution group which is only for email.
+
+### Step 6: Add Members to IT-Team
+
+```powershell
 Add-ADGroupMember -Identity "IT-Team" -Members "jsmith","jdoe"
 ```
 
-**What this does:** Creates a Global Security group called IT-Team. 
-`-GroupScope Global` means the group can be used across the entire forest. 
-`-GroupCategory Security` means it controls access permissions, not just 
-email distribution.
-
 **Verification:**
+
 ```powershell
 Get-ADGroupMember -Identity "IT-Team"
 ```
 
-**Result:** 
+```
+distinguishedName : CN=John Smith,CN=Users,DC=lab,DC=local
+name              : John Smith
+objectGUID        : 6a7d1b5c-2e65-48d3-8c41-9f8c62ee7db7
+SamAccountName    : jsmith
+SID               : S-1-5-21-2075389030-3758795886-1683061984-1103
 
-name          : John Smith | SamAccountName : jsmith
-name          : Jane Doe   | SamAccountName : jdoe 
+distinguishedName : CN=Jane Doe,CN=Users,DC=lab,DC=local
+name              : Jane Doe
+objectGUID        : 408c33be-3588-477f-9269-5004beb8b2e4
+SamAccountName    : jdoe
+SID               : S-1-5-21-2075389030-3758795886-1683061984-1104
+```
+
+<img width="1026" height="770" alt="IT Team members" src="https://github.com/user-attachments/assets/d9be8fec-05a3-4e51-b876-71ccd28ca3e9" />
+
 
 ---
 
-## Phase 6 — Creating Organizational Unit and Moving Users
+## Phase 4 — Organizational Unit
+
+### Step 7: Create OU=IT
 
 ```powershell
 New-ADOrganizationalUnit -Name "IT" -Path "DC=lab,DC=local"
-
-Move-ADObject -Identity "CN=John Smith,CN=Users,DC=lab,DC=local" `
-  -TargetPath "OU=IT,DC=lab,DC=local"
-Move-ADObject -Identity "CN=Jane Doe,CN=Users,DC=lab,DC=local" `
-  -TargetPath "OU=IT,DC=lab,DC=local"
 ```
 
-**What this does:** Creates an OU called IT inside the domain — like a folder 
-to organize users by department and apply specific policies. `Move-ADObject` 
-moves users from the default `CN=Users` container into `OU=IT`. The `CN=` prefix 
-means Common Name, `DC=` means Domain Component — this is how AD identifies 
-objects by their location in the directory tree.
+**Why:** An Organizational Unit is a container within AD used to logically organize objects — users, computers, groups — by department, location, or function. OUs are important for two reasons: structure (easier to find and manage objects) and policy (Group Policy Objects can be applied to an OU, affecting everything inside it). Without OUs, you apply policies at the domain level, which affects everyone.
+
+**First attempt to move users failed** — tried `Move-ADObject` before the OU was created, which produced: `The operation could not be performed because the object's parent is either uninstantiated or deleted`. Created the OU first, then moved:
+
+### Step 8: Move Users into OU=IT
+
+```powershell
+Move-ADObject -Identity "CN=John Smith,CN=Users,DC=lab,DC=local" -TargetPath "OU=IT,DC=lab,DC=local"
+Move-ADObject -Identity "CN=Jane Doe,CN=Users,DC=lab,DC=local" -TargetPath "OU=IT,DC=lab,DC=local"
+```
+
+**Why the DN syntax:** Active Directory uses Distinguished Names (DN) to identify every object by its full path in the directory tree. `CN=` is Common Name, `OU=` is Organizational Unit, `DC=` is Domain Component. So `CN=John Smith,CN=Users,DC=lab,DC=local` means: the object named "John Smith" inside the "Users" container inside the "lab.local" domain.
 
 **Verification:**
+
 ```powershell
 Get-ADUser -Filter * -SearchBase "OU=IT,DC=lab,DC=local"
 ```
 
-**Result:** 
+```
+DistinguishedName : CN=John Smith,OU=IT,DC=lab,DC=local
+Enabled           : True
+SamAccountName    : jsmith
+UserPrincipalName : jsmith@lab.local
 
-DistinguishedName : CN=John Smith,OU=IT,DC=lab,DC=local — Enabled: True
-DistinguishedName : CN=Jane Doe,OU=IT,DC=lab,DC=local  — Enabled: True 
+DistinguishedName : CN=Jane Doe,OU=IT,DC=lab,DC=local
+Enabled           : True
+SamAccountName    : jdoe
+UserPrincipalName : jdoe@lab.local
+```
 
-<img width="1033" height="781" alt="OU IT  O AD 003" src="https://github.com/user-attachments/assets/23a36a54-d7a0-404d-915c-d65028fdc22b" />
+Both users now show `OU=IT` in their Distinguished Name — confirming they were moved successfully.
+
+<img width="1033" height="781" alt="OU IT  O AD 003" src="https://github.com/user-attachments/assets/d407de38-774b-474d-8a17-47eca6048536" />
+
 
 ---
 
-## Phase 7 — Creating and Applying Group Policy
+## Phase 5 — Group Policy Object
+
+### Step 9: Create and Link GPO
 
 ```powershell
 New-GPO -Name "Password-Policy" | New-GPLink -Target "OU=IT,DC=lab,DC=local"
-
-Set-GPRegistryValue -Name "Password-Policy" `
-  -Key "HKLM\System\CurrentControlSet\Services\Netlogon\Parameters" `
-  -ValueName "MaximumPasswordAge" -Type DWord -Value 30
 ```
 
-**What this does:** `New-GPO` creates a Group Policy Object called Password-Policy. 
-The pipe `|` passes it directly to `New-GPLink` which links it to `OU=IT` — 
-meaning the policy applies to all users and computers in that OU. 
-`Set-GPRegistryValue` configures the policy to enforce password expiration every 
-30 days, which is standard in corporate environments.
+**Why:** A Group Policy Object is a set of rules that gets applied to users and computers within a defined scope. `New-GPO` creates the policy object. Piping it directly into `New-GPLink` links it to `OU=IT` in one command — this means every user and computer inside OU=IT will have this policy applied at login/refresh. Without the link, the GPO exists but does nothing.
 
-**Result:** 
+Output confirmed:
 
-DisplayName      : Password-Policy
-DomainName       : lab.local
-Owner            : LAB\Domain Admins
-GpoStatus        : AllSettingsEnabled
-ComputerVersion  : AD Version: 1, SysVol Version: 1
-Target           : OU=IT,DC=lab,DC=local 
+```
+GpoId       : f681df6a-8745-4eea-8d19-dd3bfd17aaca
+DisplayName : Password-Policy
+Enabled     : True
+Target      : OU=IT,DC=lab,DC=local
+Order       : 1
+```
 
-<img width="1007" height="783" alt="GPO criada e aplicada na OU=IT 004" src="https://github.com/user-attachments/assets/5892d306-a688-4393-9aef-1828c525e966" />
+<img width="1007" height="783" alt="GPO criada e aplicada na OU=IT 004" src="https://github.com/user-attachments/assets/efc4c573-ef46-4c10-9918-b5ce26cba154" />
+
+
+### Step 10: Configure Password Policy via Registry
+
+```powershell
+Set-GPRegistryValue -Name "Password-Policy" `
+  -Key "HKLM\System\CurrentControlSet\Services\Netlogon\Parameters" `
+  -ValueName "MaximumPasswordAge" `
+  -Type DWord `
+  -Value 30
+```
+
+**Why:** This pushes a registry value through the GPO to define that passwords expire after 30 days. `HKLM` is `HKEY_LOCAL_MACHINE` — the system-wide registry hive. `DWord` is a 32-bit integer data type. Value 30 = 30 days. The Netlogon Parameters path controls domain authentication settings on domain-joined machines.
+
+**Final verification:**
+
+```powershell
+Get-GPO -Name "Password-Policy"
+```
+
+```
+DisplayName     : Password-Policy
+DomainName      : lab.local
+Owner           : LAB\Domain Admins
+GpoStatus       : AllSettingsEnabled
+ModificationTime: 6/9/2026 7:17:28 PM
+ComputerVersion : AD Version: 1, SysVol Version: 1
+```
+
+`ComputerVersion: AD Version: 1` confirms the GPO has been modified — a version of 0 would mean untouched.
+
+<img width="958" height="762" alt="final conf GPO" src="https://github.com/user-attachments/assets/94c16bbe-4a6e-4eac-a9d0-a3490d4c92d1" />
 
 
 ---
 
-## AD Structure Summary 
+## Errors Encountered and Resolved
 
+| Error | Cause | Resolution |
+|---|---|---|
+| `New-ADUser: parameter 'Enabled$true' not found` | Missing space between `-Enabled` and `$true` due to terminal line wrap | Re-typed command with correct spacing |
+| `Move-ADObject: object's parent is uninstantiated` | Tried to move users before OU=IT was created | Created OU first with `New-ADOrganizationalUnit`, then moved |
+| `Get-GPReport: term not recognized` | `Get-GPReport` requires GPMC module not installed on Server Core | Used `Get-GPO` instead — confirmed GPO state via `ComputerVersion` field |
+
+---
+
+## Final Structure
+
+```
 lab.local
 └── DC01.lab.local (Domain Controller)
-└── OU=IT
-├── jsmith (John Smith) — IT-Team member
-├── jdoe (Jane Doe)     — IT-Team member
-└── GPO: Password-Policy (MaximumPasswordAge: 30 days)
+    └── OU=IT
+        ├── jsmith (John Smith) — IT-Team member
+        ├── jdoe (Jane Doe)     — IT-Team member
+        └── GPO: Password-Policy (MaximumPasswordAge: 30 days)
+```
+
+## Results Summary
+
+| Component | Status | Details |
+|---|---|---|
+| Domain | ✅ Created | lab.local |
+| Domain Controller | ✅ Promoted | DC01.lab.local |
+| Users | ✅ Created | jsmith (John Smith), jdoe (Jane Doe) |
+| Security Group | ✅ Created | IT-Team — Global Security |
+| Organizational Unit | ✅ Created | OU=IT |
+| Users in OU | ✅ Confirmed | Both users moved to OU=IT |
+| GPO | ✅ Applied | Password-Policy → OU=IT, MaxPasswordAge: 30 days |
 
 ---
 
-## Why This Matters for SOC
+## Key Concepts Learned
 
-Active Directory is the identity backbone of most corporate Windows environments. 
-Understanding AD structure is essential for SOC analysts because:
+**Distinguished Names (DN):** Every AD object has a unique path expressed as a DN. Understanding `CN=`, `OU=`, `DC=` notation is essential for scripting and troubleshooting — you'll see this format constantly in security logs, LDAP queries, and SIEM alerts.
 
-- Most attacks target AD — credential theft, privilege escalation, lateral movement
-- User and group management is where access control begins
-- Group Policy controls security configurations across the entire domain
-- Unauthorized changes to AD objects (users, groups, GPOs) are high-priority alerts
+**SID vs GUID:** Each user gets a Security Identifier (SID) — this is what Windows actually uses for access control decisions, not the username. The SID persists even if the account is renamed. This matters in forensics — logs will often show SIDs, not display names.
 
----
+**GPO Scope and Inheritance:** GPOs apply based on where they're linked. Linking to OU=IT affects only that OU. If linked at the domain level, it affects everyone. Understanding GPO scope is critical for both hardening (applying CIS benchmarks) and attack detection (malicious GPO modifications are a known persistence technique — MITRE T1484).
 
-## Lessons Learned
-
-1. **AD requires DNS.** The `-InstallDns` flag is mandatory — without DNS, 
-   domain authentication fails entirely.
-2. **Users are disabled by default.** `New-ADUser` creates accounts in a disabled 
-   state — `Enable-ADAccount` must be called separately.
-3. **OU must exist before moving objects.** Attempting `Move-ADObject` before 
-   creating the OU throws an error — order of operations matters.
-4. **GPOs are empty by default.** Creating a GPO and linking it does nothing 
-   until policies are explicitly configured inside it.
-
-<img width="958" height="762" alt="final conf GPO" src="https://github.com/user-attachments/assets/b21f62e2-59f2-4d70-b13f-4802cb9aad72" />
-
+**Default Containers vs OUs:** Users created without specifying a path land in `CN=Users` — the default container. Unlike OUs, default containers cannot have GPOs applied directly to them. Moving users to OUs is standard practice in any real environment.
 
 ---
 
-## Tools Used
-- Windows Server 2022
-- PowerShell (AD DS module)
-- VirtualBox 7.2
-- Active Directory Domain Services
-- Group Policy Management
+## Next Lab
+
+**Account Lockout Detection with Wazuh** — configure a lockout policy on DC01, trigger repeated failed logins, and detect Event ID 4740 (account lockout) in Wazuh. Maps to MITRE ATT&CK T1110 — Brute Force.
