@@ -1,4 +1,4 @@
-Detecting Linux Privilege Escalation via Misconfigured sudoers using auditd and Wazuh
+*Detecting Linux Privilege Escalation via Misconfigured sudoers using auditd and Wazuh*
 
 Skills Demonstrated
 
