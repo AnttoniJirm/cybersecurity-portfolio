@@ -1,7 +1,7 @@
 # Cybersecurity Portfolio — Anttoni Mascarenhas
 
 🔐 Aspiring SOC Analyst transitioning into cybersecurity.  
-📍 Based in Melbourne, Australia — open to local and remote opportunities.  
+📍 Based in Melbourne, Australia, open to local and remote opportunities.  
 🎯 Building practical skills through home labs and real-world attack simulations.
 
 ---
@@ -36,8 +36,8 @@
 ## Certifications
 
 - ✅ Google Cybersecurity Certificate
-- 🔄 AZ-900 — Microsoft Azure Fundamentals (In Progress)
-- 📋 SC-900 → CompTIA Security+ (Planned)
+- 🔄 AZ-900 — Microsoft Azure Fundamentals 
+- 📋 SC-900 → CompTIA Security+ (In Progress)
 
 ---
 
