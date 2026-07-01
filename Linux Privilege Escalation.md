@@ -1,57 +1,77 @@
-**Detecting Linux Privilege Escalation via Misconfigured sudoers using auditd and Wazuh**
+# Detecting Linux Privilege Escalation via Misconfigured sudoers using auditd and Wazuh
 
-Skills Demonstrated
+## Skills Demonstrated
 
+- Linux privilege model (UID, EUID, AUID)
+- `sudoers` misconfiguration identification
+- Linux Audit (`auditd`) rule configuration and forensic analysis
+- PAM log analysis
+- SIEM alerting with Wazuh
+- Syscall-level forensic tracing via `ausearch`
+- MITRE ATT&CK technique mapping
+- Threat detection and incident investigation
 
-Linux privilege model (UID, EUID, AUID)
-sudoers misconfiguration identification
-Linux Audit (auditd) rule configuration and forensic analysis
-PAM log analysis
-SIEM alerting with Wazuh
-Syscall-level forensic tracing via ausearch
-MITRE ATT&CK technique mapping
-Threat detection and incident investigation
+## Tools Used
 
+Ubuntu 22.04 · Kali Linux · auditd · ausearch · sudo · SSH · Wazuh 4.7.5 · `/var/log/auth.log`
 
-Tools Used
+---
 
-Ubuntu 22.04 · Kali Linux · auditd · ausearch · sudo · SSH · Wazuh 4.7.5 · /var/log/auth.log
+## Objective
 
+Simulate a privilege escalation caused by a misconfigured `sudoers` entry and investigate the activity using `auditd` and Wazuh to correlate host-level forensic evidence with SIEM alerts.
 
-Objective
+## Environment
 
-Simulate a privilege escalation caused by a misconfigured sudoers entry and investigate the activity using auditd and Wazuh to correlate host-level forensic evidence with SIEM alerts.
+| Host | Role | IP | OS |
+|---|---|---|---|
+| Kali Linux 2026.1 | Attacker | 192.168.20.11 | Kali |
+| Ubuntu 22.04 LTS | Target / Wazuh Manager | 192.168.20.10 (hostname: Ubuntu2) | Wazuh 4.7.5 |
 
-Environment
+All hosts reside on an isolated internal lab network (`labnet`), with no external connectivity.
 
-HostRoleIPOSKali Linux 2026.1Attacker192.168.20.11KaliUbuntu 22.04 LTSTarget / Wazuh Manager192.168.20.10 (hostname: Ubuntu2)Wazuh 4.7.5
+## Vulnerability / Misconfiguration
 
-All hosts reside on an isolated internal lab network (labnet), with no external connectivity.
+A misconfiguration was introduced into `/etc/sudoers` (via `visudo`) for the local user `hacker` (uid 1001):
 
-Vulnerability / Misconfiguration
-
-A misconfiguration was introduced into /etc/sudoers (via visudo) for the local user hacker (uid 1001):
-
+```
 hacker ALL=(ALL) NOPASSWD: /bin/bash
+```
 
-This entry grants hacker the ability to obtain a full, interactive root shell without re-authenticating — a broad NOPASSWD rule granting unrestricted access to /bin/bash. This type of misconfiguration is commonly introduced when administrators grant wide sudo access instead of scoping rules to specific, necessary commands.
+This entry grants `hacker` the ability to obtain a full, interactive root shell without re-authenticating — a broad `NOPASSWD` rule granting unrestricted access to `/bin/bash`. This type of misconfiguration is commonly introduced when administrators grant wide sudo access instead of scoping rules to specific, necessary commands.
 
-Detection Setup (auditd)
+## Detection Setup (auditd)
 
 An audit rule was configured on the Ubuntu host to track privilege escalation activity:
 
+```
 sudo /sbin/auditctl -a always,exit -F arch=b64 -S execve -F euid=0 -F auid!=0 -k privilege_escalation
+```
 
-FlagMeaningarch=b64Monitor 64-bit syscalls-S execveTrack all program execution events-F euid=0Only events where the effective UID is 0 (root)-F auid!=0Exclude actions performed natively under root's own login session-k privilege_escalationTag matching events for retrieval via ausearch
+| Flag | Meaning |
+|---|---|
+| `arch=b64` | Monitor 64-bit syscalls |
+| `-S execve` | Track all program execution events |
+| `-F euid=0` | Only events where the *effective* UID is 0 (root) |
+| `-F auid!=0` | Exclude actions performed natively under root's own login session |
+| `-k privilege_escalation` | Tag matching events for retrieval via `ausearch` |
 
-This rule does not prevent escalation — it records a forensic trail that survives privilege changes, because the auid (audit user ID / login UID) field is set at login time and remains immutable for the entire session, even after sudo changes the effective and real UID.
+This rule does not prevent escalation — it records a forensic trail that survives privilege changes, because the `auid` (audit user ID / login UID) field is set at login time and remains immutable for the entire session, even after `sudo` changes the effective and real UID.
 
-What this rule detects:
+**What this rule detects:**
 
-ScenarioDetected?sudo /bin/bash✓ Yessudo su✓ Yessudo vim / sudo nano✓ YesAny command executed as euid=0 by a non-root login✓ YesCommands run by a user without sudo✗ No (euid stays non-root)Direct root login✗ No (auid=0 is excluded)
+| Scenario | Detected? |
+|---|---|
+| `sudo /bin/bash` | ✓ Yes |
+| `sudo su` | ✓ Yes |
+| `sudo vim` / `sudo nano` | ✓ Yes |
+| Any command executed as euid=0 by a non-root login | ✓ Yes |
+| Commands run by a user without sudo | ✗ No (euid stays non-root) |
+| Direct root login | ✗ No (auid=0 is excluded) |
 
-Attack Simulation
+## Attack Simulation
 
+```
 [Kali — 192.168.20.11]
         │
         │  SSH (hacker / password123)
@@ -66,15 +86,15 @@ Attack Simulation
         │
         ▼
    auditd logs syscall → Wazuh ingests → Rule 5402 fired
+```
 
 Steps executed:
 
-
-SSH from Kali into the Ubuntu host as hacker:
-ssh hacker@192.168.20.10
-Confirmed the sudoers misconfiguration: sudo -l
-Escalated to a root shell: sudo /bin/bash
-Verified privilege change: whoami / id → uid=0(root) (was uid=1001(hacker)) 
+1. SSH from Kali into the Ubuntu host as `hacker`:  
+   `ssh hacker@192.168.20.10`
+2. Confirmed the sudoers misconfiguration: `sudo -l`
+3. Escalated to a root shell: `sudo /bin/bash`
+4. Verified privilege change: `whoami` / `id` → `uid=0(root)` (was `uid=1001(hacker)`)
 
 <img width="953" height="816" alt="kali sudo binbash" src="https://github.com/user-attachments/assets/a401e927-b7b2-48fd-8a8c-fbbffb22b473" /> 
 
