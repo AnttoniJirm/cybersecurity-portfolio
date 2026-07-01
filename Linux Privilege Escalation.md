@@ -98,11 +98,15 @@ Steps executed:
 
 <img width="953" height="816" alt="kali sudo binbash" src="https://github.com/user-attachments/assets/a401e927-b7b2-48fd-8a8c-fbbffb22b473" /> 
 
-Wazuh Alerts
+## Wazuh Alerts
 
-Wazuh's sudo/PAM log decoder (reading /var/log/auth.log) generated the following alerts on each successful escalation:
+Wazuh's sudo/PAM log decoder (reading `/var/log/auth.log`) generated the following alerts on each successful escalation:
 
-RuleDescriptionLevel5402Successful sudo to ROOT executed35501PAM: Login session opened35502PAM: Login session closed3
+| Rule | Description | Level |
+|---|---|---|
+| **5402** | Successful sudo to ROOT executed | 3 |
+| 5501 | PAM: Login session opened | 3 |
+| 5502 | PAM: Login session closed | 3 |
 
 Rule 5402 fired consistently across the testing window (17:37, 17:39, 17:43, 17:53 on Jun 29, and again on Jun 30 after the host was restarted), confirming reliable detection across sessions.
 
@@ -110,61 +114,82 @@ Rule 5402 fired consistently across the testing window (17:37, 17:39, 17:43, 17:
 
 <img width="1290" height="821" alt="wazuh-5402-rule-detail png" src="https://github.com/user-attachments/assets/891731d8-b36f-4fdc-9441-c42f0a7a5446" />
 
-Note on Rule 5403: Wazuh also ships Rule 5403 ("First time user executed sudo"), which fires exactly once per user account — on the very first successful sudo invocation ever recorded. Because hacker's sudo access was already exercised while validating the misconfiguration (sudo -l) earlier in the lab setup, Rule 5403 had already fired before this documented incident window. This is expected behavior given how the rule is designed, not a detection gap.
+**Note on Rule 5403:** Wazuh also ships Rule 5403 (*"First time user executed sudo"*), which fires exactly once per user account — on the very first successful sudo invocation ever recorded. Because `hacker`'s sudo access was already exercised while validating the misconfiguration (`sudo -l`) earlier in the lab setup, Rule 5403 had already fired before this documented incident window. This is expected behavior given how the rule is designed, not a detection gap.
 
-Forensic Evidence (auditd / ausearch)
+## Forensic Evidence (auditd / ausearch)
 
 On the Ubuntu host, the auditd trail was queried directly:
 
+```
 sudo ausearch -k privilege_escalation --interpret | grep -E "time|exe|auid|euid|comm"
+```
 
 Representative output:
 
+```
 type=SYSCALL ... auid=hacker uid=root gid=root euid=root suid=root ... comm=sh exe=/usr/bin/dash key=privilege_escalation
+```
 
+---
 
-Why auid matters:
+**Why `auid` matters:**
 
+```
 auid  = hacker   ← the human who authenticated via SSH
 uid   = root     ← what sudo changed it to
 euid  = root     ← effective UID at time of syscall
+```
 
-Even though the process is running as root, auid continues to read hacker for the entire session. This allows an investigator to definitively trace any privileged action — even commands executed after sudo /bin/bash — back to the original account. This is the core forensic value of auditd in this scenario: auth.log alone confirms that a sudo escalation occurred, but only auditd confirms who initiated it at syscall level.
+Even though the process is running as root, `auid` continues to read `hacker` for the entire session. This allows an investigator to definitively trace any privileged action — even commands executed after `sudo /bin/bash` — back to the original account. This is the core forensic value of `auditd` in this scenario: `auth.log` alone confirms *that* a sudo escalation occurred, but only `auditd` confirms *who* initiated it at syscall level.
+
+---
 
 <img width="1282" height="805" alt="ausearch-top" src="https://github.com/user-attachments/assets/0accc5e7-6e1f-4284-903b-be28d86768ff" />
 
 <img width="1282" height="800" alt="ausearch-bottom" src="https://github.com/user-attachments/assets/6c674a2e-684e-4e95-aa30-a189da90f495" />
 
-Timeline
+## Timeline
 
-TimeEventSourceJun 29 @ 17:37SSH login as hacker from 192.168.20.11Wazuh Rule 5501Jun 29 @ 17:37sudo -l — misconfiguration confirmedKali terminalJun 29 @ 17:37sudo /bin/bash — root shell obtainedWazuh Rule 5402 / ausearchJun 29 @ 17:37Session closedWazuh Rule 5502Jun 29 @ 17:39–17:53Attack repeated across multiple sessionsWazuh Rule 5402 (×3)Jun 30 @ 21:14ausearch query confirming auid=hacker trailUbuntu2 terminalJun 30 @ 21:18Wazuh dashboard evidence capturedUbuntu2 Firefox
+| Time | Event | Source |
+|---|---|---|
+| Jun 29 @ 17:37 | SSH login as `hacker` from 192.168.20.11 | Wazuh Rule 5501 |
+| Jun 29 @ 17:37 | `sudo -l` — misconfiguration confirmed | Kali terminal |
+| Jun 29 @ 17:37 | `sudo /bin/bash` — root shell obtained | Wazuh Rule 5402 / ausearch |
+| Jun 29 @ 17:37 | Session closed | Wazuh Rule 5502 |
+| Jun 29 @ 17:39–17:53 | Attack repeated across multiple sessions | Wazuh Rule 5402 (×3) |
+| Jun 30 @ 21:14 | ausearch query confirming auid=hacker trail | Ubuntu2 terminal |
+| Jun 30 @ 21:18 | Wazuh dashboard evidence captured | Ubuntu2 Firefox |
 
-Incident Summary
+## Incident Summary
 
-A user with low-privilege SSH access (hacker) was able to obtain a full root shell on the Ubuntu host due to an overly permissive sudoers entry granting NOPASSWD access to /bin/bash. The escalation was detected through two independent layers: Wazuh's sudo log decoder (Rule 5402, real-time SIEM alert) and Linux Audit's syscall-level tracking (host-level forensic trail via ausearch). Together, these confirm both that an escalation occurred and who the originating user was — even after the UID changed to root.
+A user with low-privilege SSH access (`hacker`) was able to obtain a full root shell on the Ubuntu host due to an overly permissive `sudoers` entry granting `NOPASSWD` access to `/bin/bash`. The escalation was detected through two independent layers: Wazuh's sudo log decoder (Rule 5402, real-time SIEM alert) and Linux Audit's syscall-level tracking (host-level forensic trail via `ausearch`). Together, these confirm both *that* an escalation occurred and *who* the originating user was — even after the UID changed to root.
 
-MITRE ATT&CK Mapping
+## MITRE ATT&CK Mapping
 
-FieldValueTacticPrivilege EscalationTechniqueT1548 — Abuse Elevation Control MechanismSub-techniqueT1548.003 — Sudo and Sudo Caching
+| Field | Value |
+|---|---|
+| Tactic | Privilege Escalation |
+| Technique | T1548 — Abuse Elevation Control Mechanism |
+| Sub-technique | **T1548.003 — Sudo and Sudo Caching** |
 
-This sub-technique covers adversaries abusing the sudoers configuration to execute commands as another user (typically root) without re-authentication. It is intentionally distinct from T1068 (Exploitation for Privilege Escalation), which requires exploitation of a software vulnerability or kernel/binary flaw. This scenario involves no such vulnerability — the system granted elevated access exactly as configured. The misconfiguration made that grant overly broad; there was no code being exploited.
+This sub-technique covers adversaries abusing the `sudoers` configuration to execute commands as another user (typically root) without re-authentication. It is intentionally distinct from **T1068 (Exploitation for Privilege Escalation)**, which requires exploitation of a software vulnerability or kernel/binary flaw. This scenario involves no such vulnerability — the system granted elevated access exactly as configured. The misconfiguration made that grant overly broad; there was no code being exploited.
 
-Recommendations
+## Recommendations
 
+- Remove `NOPASSWD` entries from `/etc/sudoers` and `/etc/sudoers.d/`; require authentication for all sudo invocations.
+- Scope sudo grants to specific, necessary commands only — never to `/bin/bash`, `/bin/sh`, or other shell binaries.
+- Periodically audit `/etc/sudoers` and `/etc/sudoers.d/` for unauthorized or overly permissive entries.
+- Consider `sudo` I/O logging (`Defaults log_input,log_output`) for full session-level visibility into privileged commands executed after escalation.
+- Persist `auditd` rules under `/etc/audit/rules.d/` (loaded via `augenrules --load`) rather than relying on `auditctl` alone, which does not survive a reboot.
 
-Remove NOPASSWD entries from /etc/sudoers and /etc/sudoers.d/; require authentication for all sudo invocations.
-Scope sudo grants to specific, necessary commands only — never to /bin/bash, /bin/sh, or other shell binaries.
-Periodically audit /etc/sudoers and /etc/sudoers.d/ for unauthorized or overly permissive entries.
-Consider sudo I/O logging (Defaults log_input,log_output) for full session-level visibility into privileged commands executed after escalation.
-Persist auditd rules under /etc/audit/rules.d/ (loaded via augenrules --load) rather than relying on auditctl alone, which does not survive a reboot.
+## Lessons Learned
 
+**`auid` is the most reliable attribution field.** It does not change even after `sudo` modifies the effective and real UID. An investigator can always trace root-level activity back to the originating account as long as `auditd` is running and the session was initiated interactively.
 
-Lessons Learned
+**Broad audit filters generate noise.** The filter `-F auid!=0` also matches the "unset" sentinel value (`auid=-1`) used for non-interactive, daemon-spawned processes — not only real interactive users. In this lab, Wazuh's own internal subprocess execution (`df`, `sed`, `sort`, `last`) was tagged with the same `privilege_escalation` key as the actual attacker activity. A more precise rule targeting only real human logins would use:
 
-auid is the most reliable attribution field. It does not change even after sudo modifies the effective and real UID. An investigator can always trace root-level activity back to the originating account as long as auditd is running and the session was initiated interactively.
-
-Broad audit filters generate noise. The filter -F auid!=0 also matches the "unset" sentinel value (auid=-1) used for non-interactive, daemon-spawned processes — not only real interactive users. In this lab, Wazuh's own internal subprocess execution (df, sed, sort, last) was tagged with the same privilege_escalation key as the actual attacker activity. A more precise rule targeting only real human logins would use:
-
+```
 -F auid>=1000 -F auid!=-1
+```
 
-Custom audit keys do not auto-surface in Wazuh. Wazuh's default auditd ruleset only generates a named dashboard alert for conventional, CDB-listed audit keys (e.g., audit-wazuh-c, audit-wazuh-w). A custom key such as privilege_escalation is fully visible at the host level via ausearch, but does not automatically appear as a named alert in the Wazuh dashboard unless a custom rule is added to local_rules.xml matching that key. Rule 5402 (from auth.log) covered detection in this lab — but in a production environment, adding a custom rule to surface auditd key matches directly in the SIEM would provide a more complete and automated detection pipeline.
+**Custom audit keys do not auto-surface in Wazuh.** Wazuh's default auditd ruleset only generates a named dashboard alert for conventional, CDB-listed audit keys (e.g., `audit-wazuh-c`, `audit-wazuh-w`). A custom key such as `privilege_escalation` is fully visible at the host level via `ausearch`, but does not automatically appear as a named alert in the Wazuh dashboard unless a custom rule is added to `local_rules.xml` matching that key. Rule 5402 (from `auth.log`) covered detection in this lab — but in a production environment, adding a custom rule to surface `auditd` key matches directly in the SIEM would provide a more complete and automated detection pipeline.
