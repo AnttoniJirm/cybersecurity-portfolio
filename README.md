@@ -1,38 +1,35 @@
-# Cybersecurity Portfolio  Anttoni Mascarenhas
+# Cybersecurity Portfolio — Anttoni Mascarenhas
 
-🔐 Aspiring SOC Analyst transitioning into cybersecurity from a hands-on background in construction .  
-📍 Based in Melbourne, Australia , open to local and remote opportunities.  
-🎯 Building practical skills through home labs, TryHackMe, and real-world simulations.
+🔐 Aspiring SOC Analyst transitioning into cybersecurity.  
+📍 Based in Melbourne, Australia — open to local and remote opportunities.  
+🎯 Building practical skills through home labs and real-world attack simulations.
 
 ---
 
-## What You'll Find Here
+## Labs & Projects
 
-This repository documents my cybersecurity learning journey  every project, every lab, every lesson learned.
-
-| File | Description | Status |
-|------|-------------|--------|
-| [home-lab-setup.md](./home-lab-setup.md) | Built isolated home lab with Kali Linux + Ubuntu on VirtualBox | ✅ Complete |
-| [linux-fundamentals.md](./linux-fundamentals.md) | TryHackMe / Linux Fundamentals 1, 2 & 3 | ✅ Complete |
-| [windows-fundamentals.md](./windows-fundamentals.md) | TryHackMe / Windows Fundamentals | ✅ Complete |
-| wazuh-siem-lab.md | SIEM Home Lab using Wazuh — log ingestion, detection rules, dashboards | 🔄 In Progress |
-| firewall-lab.md | pfSense + DVWA — network firewall and web application firewall | 📋 Coming Soon |
-| wireshark-analysis.md | Network traffic analysis  capturing and filtering packets | 📋 Coming Soon |
-| azure-security-lab.md | Microsoft Sentinel + Azure security configuration | 📋 Coming Soon |
+| Project | Description | MITRE | Status |
+|---|---|---|---|
+| [SSH Brute Force Detection with Wazuh](./SSH%20Brute%20Force%20Detection%20with%20Wazuh.md) | Hydra brute force attack detected via Wazuh Rules 5760/5758 | T1110 | ✅ Complete |
+| [Account Lockout Detection with Wazuh](./Account%20Lockout%20Detection%20with%20Wazuh.md) | AD lockout detection via Event ID 4740 and Wazuh Rule 60115 | T1110.001 | ✅ Complete |
+| [Linux Privilege Escalation Detection](./Linux%20Privilege%20Escalation.md) | sudoers misconfiguration detected via auditd and Wazuh Rule 5402 | T1548.003 | ✅ Complete |
+| Wireshark Traffic Analysis | Network forensics — protocol analysis and anomaly detection | T1040 | 📋 Coming Soon |
+| Splunk SIEM — BOTSv3 | Threat hunting with Splunk using Boss of the SOC dataset | Multiple | 📋 Coming Soon |
+| DVWA — Web Vulnerabilities | SQLi, XSS, file upload attacks detected and documented | T1190 | 📋 Coming Soon |
+| Azure Security Lab + Sentinel | Cloud security monitoring with Microsoft Sentinel and KQL | Multiple | 📋 Coming Soon |
 
 ---
 
 ## Lab Environment
 
-| Tool | Role |
-|------|------|
-| VirtualBox 7.2 | Hypervisor  runs all VMs locally |
-| Kali Linux 2026.1 | Attacker machine |
-| Ubuntu 26.04 | Victim / Defender machine |
-| TryHackMe | Guided learning platform |
-| GitHub | Documentation and portfolio |
+| Host | Role | IP | OS |
+|---|---|---|---|
+| Windows 11 | Hypervisor (VirtualBox) | — | Host |
+| Kali Linux 2026.1 | Attacker | 192.168.20.11 | Kali |
+| Ubuntu 22.04 LTS | Target / Wazuh 4.7.5 | 192.168.20.10 | Ubuntu |
+| Windows Server 2022 | Domain Controller (lab.local) | 192.168.20.20 | Windows |
 
-**Network:** Internal isolated network (labnet)  no internet access, safe for attack/defense practice.
+**Network:** Isolated internal network (labnet) — no internet access.
 
 ---
 
@@ -40,23 +37,19 @@ This repository documents my cybersecurity learning journey  every project, ever
 
 - ✅ Google Cybersecurity Certificate
 - 🔄 AZ-900 — Microsoft Azure Fundamentals (In Progress)
-- 📋 CompTIA Security+ (Studying)
+- 📋 SC-900 → CompTIA Security+ (Planned)
 
 ---
 
-## Skills Demonstrated
+## Skills
 
-`Linux` `Windows` `Networking` `VirtualBox` `Kali Linux`  
-`Nmap` `Wireshark` `Metasploit` `SQLmap` `John the Ripper`  
-`Azure` `Python (basics)` `SQL` `SIEM` `Incident Response`
+`Linux` `Windows` `Active Directory` `Wazuh` `auditd` `Splunk`  
+`Kali Linux` `Nmap` `Hydra` `Wireshark` `MITRE ATT&CK` `Incident Response`
 
 ---
 
 ## Connect
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Anttoni%20Mascarenhas-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/antoni-mascarenhas-8b6281120/)
-[![TryHackMe](https://img.shields.io/badge/TryHackMe-Profile-red?style=flat&logo=tryhackme)](https://tryhackme.com)
 
----
-
-*This portfolio is actively updated as I complete new projects and labs.*
+*Portfolio actively updated as new labs are completed.*
